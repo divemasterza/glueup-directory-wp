@@ -8,11 +8,14 @@
  * Author URI:      https://bigambitions.co.za
  * Text Domain:     glueup
  * Domain Path:     /languages
- * Version:         0.1.0
+ * Version:         0.1.1
  *
  * @package         Glueup
  */
 
+if (isset($_POST['clear_transient']) && $_POST['clear_transient'] == 1) {
+    clear_transient_data();
+}
 
 // enqueue scripts
 function enqueue_scripts()
@@ -26,6 +29,7 @@ function enqueue_scripts()
 }
 
 add_action('wp_enqueue_scripts', 'enqueue_scripts');
+
 
 
 
@@ -71,9 +75,9 @@ function directory_create_menu()
 }
 add_action('admin_menu', 'directory_create_menu');
 
-// Display the settings page
 function directory_display_settings()
 {
+    ob_start();
 ?>
     <div class="wrap">
         <h1>Directory</h1>
@@ -85,7 +89,16 @@ function directory_display_settings()
             ?>
         </form>
     </div>
+
+    <h2>Clear Transients</h2>
+    <p>Click the button below to clear the transient data stored:</p>
+    <form method="post" action="">
+        <input type="hidden" name="clear_transient" value="1">
+        <p><button type="submit" class="button danger">Clear Transient</button></p>
+    </form>
+
 <?php
+    echo ob_get_clean();
 }
 
 // Get the keys
@@ -139,6 +152,12 @@ function fetch_and_cache_data()
 
     return $data;
 }
+function clear_transient_data()
+{
+    delete_transient('glueup_members_data');
+    echo '<div class="notice notice-success"><p>Transients cleared successfully!</p></div>';
+}
+
 
 function display_data_table()
 {
