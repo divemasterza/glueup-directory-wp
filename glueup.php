@@ -8,7 +8,7 @@
  * Author URI:      https://bigambitions.co.za
  * Text Domain:     glueup
  * Domain Path:     /languages
- * Version:         0.1.2
+ * Version:         0.1.3
  * GitHub Plugin URI: divemasterza/glueup-directory-wp
  *
  * @package         Glueup
@@ -179,7 +179,7 @@ function fetch_and_cache_data()
 }
 function clear_transient_data()
 {
-    delete_transient('glueup_members_data');
+    delete_transient('api_data');
     echo '<div class="notice notice-success"><p>Transients cleared successfully!</p></div>';
 }
 
