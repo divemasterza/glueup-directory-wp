@@ -70,7 +70,6 @@ function directory_public_key_callback()
 }
 
 // Create the menu page
-// Create the menu page
 function directory_create_menu()
 {
     add_menu_page('Directory', 'Directory', 'manage_options', 'directory', 'directory_display_settings', 'dashicons-admin-network', 20);
@@ -137,10 +136,9 @@ function fetch_and_cache_data()
     // Check if the data is cached
     $data = get_transient($transient_key);
 
-    // get the key
     // Get the keys
-    $private_key = get_option('directory_private_key');
-    $public_key = get_option('directory_public_key');
+    $privateKey = get_option('directory_private_key');
+    $publicKey = get_option('directory_public_key');
     $requestMethod = 'POST';
     $version = '1.0';
     $time = round(microtime(true) * 1000);
