@@ -8,7 +8,7 @@
  * Author URI:      https://bigambitions.co.za
  * Text Domain:     glueup
  * Domain Path:     /languages
- * Version:         0.1.1
+ * Version:         0.1.2
  *
  * @package         Glueup
  */
@@ -69,6 +69,7 @@ function directory_public_key_callback()
 }
 
 // Create the menu page
+// Create the menu page
 function directory_create_menu()
 {
     add_menu_page('Directory', 'Directory', 'manage_options', 'directory', 'directory_display_settings', 'dashicons-admin-network', 20);
@@ -97,13 +98,35 @@ function directory_display_settings()
         <p><button type="submit" class="button danger">Clear Transient</button></p>
     </form>
 
+    <!-- Shortcode Display and Copy to Clipboard -->
+    <h2>Shortcode</h2>
+    <p>Use this shortcode to display the data table on your page:</p>
+    <input id="shortcode" readonly="readonly" value="[data_table]" style="width: 100%;">
+    <button id="copyShortcodeBtn" class="button">Copy to clipboard</button>
+    <span id="copySuccessMsg" style="display: none; color: green; margin-left: 10px;">Shortcode copied to clipboard!</span>
+
+    <script>
+        document.querySelector("#copyShortcodeBtn").addEventListener("click", function() {
+            var copyText = document.querySelector("#shortcode");
+            var copySuccessMsg = document.querySelector("#copySuccessMsg");
+            copyText.select();
+            document.execCommand("copy");
+
+            // Show success message
+            copySuccessMsg.style.display = 'inline';
+
+            // Hide the success message after 2 seconds
+            setTimeout(function() {
+                copySuccessMsg.style.display = 'none';
+            }, 2000);
+        });
+    </script>
+
+
 <?php
     echo ob_get_clean();
 }
 
-// Get the keys
-$private_key = get_option('directory_private_key');
-$public_key = get_option('directory_public_key');
 
 
 function fetch_and_cache_data()
@@ -114,8 +137,9 @@ function fetch_and_cache_data()
     $data = get_transient($transient_key);
 
     // get the key
-    $publicKey = 'asata';
-    $privateKey = get_option('directory_private_key');
+    // Get the keys
+    $private_key = get_option('directory_private_key');
+    $public_key = get_option('directory_public_key');
     $requestMethod = 'POST';
     $version = '1.0';
     $time = round(microtime(true) * 1000);
