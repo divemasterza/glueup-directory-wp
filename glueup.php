@@ -9,6 +9,7 @@
  * Text Domain:     glueup
  * Domain Path:     /languages
  * Version:         0.1.2
+ * GitHub Plugin URI: divemasterza/glueup-directory-wp
  *
  * @package         Glueup
  */
