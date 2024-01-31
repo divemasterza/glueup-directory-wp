@@ -202,6 +202,7 @@ function display_data_table()
                 <th class="none">Phone</th>
                 <th>ASATA Region</th>
                 <th class="none">Address</th>
+                <th class="none">Website</th>
             </tr>
         </thead>
         <tbody>
@@ -255,6 +256,12 @@ function display_data_table()
                             } else {
                                 echo ('');
                             }  ?> </td>
+                    <!-- column 7 -->
+                    <td> <?php if (isset($item['companyWebsiteAddress'])) {
+                                echo esc_html($item['companyWebsiteAddress']);
+                            } else {
+                                echo ('');
+                            } ?> </td>
                 </tr>
             <?php endforeach; ?>
         <tfoot>
@@ -265,6 +272,7 @@ function display_data_table()
                 <th class="none">Phone</th>
                 <th>ASATA Region</th>
                 <th class="none">Address</th>
+                <th class="none">Website</th>
             </tr>
         </tfoot>
         </tbody>
