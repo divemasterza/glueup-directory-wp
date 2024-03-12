@@ -1,42 +1,57 @@
-# A set of files you probably don't want in your WordPress.org distribution
-.babelrc
-.deployignore
-.distignore
-.editorconfig
-.eslintignore
-.eslintrc
-.git
-.gitignore
-.github
-.gitlab-ci.yml
-.travis.yml
-.DS_Store
-Thumbs.db
-behat.yml
-bitbucket-pipelines.yml
-bin
-.circleci/config.yml
-composer.json
-composer.lock
-dependencies.yml
-Gruntfile.js
-package.json
-package-lock.json
-phpunit.xml
-phpunit.xml.dist
-multisite.xml
-multisite.xml.dist
-.phpcs.xml
-phpcs.xml
-.phpcs.xml.dist
-phpcs.xml.dist
-README.md
-webpack.config.js
-wp-cli.local.yml
-yarn.lock
-tests
-vendor
-node_modules
-*.sql
-*.tar.gz
-*.zip
+#!/bin/bash
+
+# This script will remove unnecessary files from a WordPress.org distribution
+
+# The list of files to remove
+unwanted_files=(
+    ".babelrc"
+    ".deployignore"
+    ".distignore"
+    ".editorconfig"
+    ".eslintignore"
+    ".eslintrc"
+    ".git"
+    ".gitignore"
+    ".github"
+    ".gitlab-ci.yml"
+    ".travis.yml"
+    ".DS_Store"
+    "Thumbs.db"
+    "behat.yml"
+    "bitbucket-pipelines.yml"
+    "bin"
+    ".circleci/config.yml"
+    "composer.json"
+    "composer.lock"
+    "dependencies.yml"
+    "Gruntfile.js"
+    "package.json"
+    "package-lock.json"
+    "phpunit.xml"
+    "phpunit.xml.dist"
+    "multisite.xml"
+    "multisite.xml.dist"
+    ".phpcs.xml"
+    "phpcs.xml"
+    ".phpcs.xml.dist"
+    "phpcs.xml.dist"
+    "README.md"
+    "webpack.config.js"
+    "wp-cli.local.yml"
+    "yarn.lock"
+    "tests"
+    "vendor"
+    "node_modules"
+    "*sql"
+    "*tar.gz"
+    "*zip"
+)
+
+# The root directory of the WordPress.org distribution
+root_dir="/path/to/wordpress.org/distribution"
+
+# Remove the unwanted files
+for file in "${unwanted_files[@]}"; do
+    rm -rf "${root_dir}/${file}"
+done
+
