@@ -453,6 +453,13 @@ function display_data_table()
         </thead>
         <tbody>
             <?php foreach ($mem['value'] as $item) : ?>
+                <?php
+                // Skip entries where endDate is in the past
+                $endDate = $item['endDate'] / 1000; // Convert milliseconds to seconds
+                if ($endDate < time()) {
+                    continue; // Skip this entry
+                }
+                ?>
                 <tr>
                     <!-- column 1     -->
                     <td><?php echo esc_html($item['name']); ?></td>
