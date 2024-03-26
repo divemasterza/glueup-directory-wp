@@ -8,7 +8,7 @@
  * Author URI:      https://bigambitions.co.za
  * Text Domain:     glueup
  * Domain Path:     /languages
- * Version:         0.1.4
+ * Version:         0.1.5
  * GitHub Plugin URI: divemasterza/glueup-directory-wp
  *
  * @package         Glueup
