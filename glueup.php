@@ -8,9 +8,9 @@
  * Author URI:      https://bigambitions.co.za
  * Text Domain:     glueup
  * Domain Path:     /languages
- * Version:         0.1.5
+ * Version:         0.1.6
  * GitHub Plugin URI: divemasterza/glueup-directory-wp
- *
+ * Update URI: false
  * @package         Glueup
  */
 
@@ -133,43 +133,137 @@ function fetch_and_cache_data()
 {
     $transient_key = 'api_data';
 
-    // Check if the data is cached
-    $data = get_transient($transient_key);
+    // Try to get cached data first
+    $cached = get_transient($transient_key);
+
+    // If we have valid cached data, return it immediately
+    if ($cached && isset($cached['value']) && is_array($cached['value'])) {
+        return $cached;
+    }
+
+    // If we're here, we need to fetch fresh data
 
     // Get the keys
     $privateKey = get_option('directory_private_key');
     $publicKey = get_option('directory_public_key');
+
+    // Ensure we have the required keys
+    if (empty($privateKey) || empty($publicKey)) {
+        return array('value' => array()); // Return empty data structure instead of false
+    }
+
     $requestMethod = 'POST';
     $version = '1.0';
-    $time = round(microtime(true) * 1000);
-    $digest = hash_hmac('sha256', $requestMethod . $publicKey . $version . $time, $privateKey);
-    $ts = $time;
-    $d = $digest;
-    $ha = "v=1.0;k=" . $publicKey . ";ts=" . $ts . ";d=" . $d;
-    $bdreq = json_encode(array(
-        'filter' => array(),
-        'projection' => array(),
-    ));
 
-    // Add ts and d to your HTTP request headers
+    // Clear any existing transient before fetching new data
+    delete_transient($transient_key);
 
-    // If the data is not cached, fetch it and cache it
-    if (false === $data) {
+    // -----------------------------------------------------------------
+    // Pagination
+    // -----------------------------------------------------------------
+    // The Glueup endpoint returns one page of records per request
+    // (previously capping the directory at 100 entries). Per the API docs
+    // (https://glueupapi.docs.apiary.io) paging uses "offset" + "limit" in
+    // the body, and the response carries metadata.pagination.total.
+    // We loop through pages until every record has been collected.
+    //
+    // Safety: records are de-duplicated by id, and the loop also stops as
+    // soon as a page returns no *new* records, so it can never spin forever.
+    // -----------------------------------------------------------------
+    $pageSize   = 100;   // records requested per page
+    $offset     = 0;     // offset into the result set
+    $total      = null;  // total records reported by the API
+    $maxPages   = 200;   // hard safety cap (200 * 100 = 20,000 records)
+    $allRecords = array();
+    $seen       = array();
+
+    for ($page = 0; $page < $maxPages; $page++) {
+
+        // A fresh signature/timestamp is required for every request
+        $time   = round(microtime(true) * 1000);
+        $digest = hash_hmac('sha256', $requestMethod . $publicKey . $version . $time, $privateKey);
+        $ha     = "v=1.0;k=" . $publicKey . ";ts=" . $time . ";d=" . $digest;
+
+        $bdreq = json_encode(array(
+            'filter'     => array(),
+            'projection' => array(),
+            'order'      => array('name' => 'asc'), // stable ordering across pages
+            'offset'     => $offset,
+            'limit'      => $pageSize,
+        ));
+
         $response = wp_remote_post('https://api.glueup.com/v2/membershipDirectory/corporateMemberships', array(
             'headers'           => array(
                 'a'             => $ha,
                 'method'        => $requestMethod,
                 'Content-Type'  => 'application/json',
             ),
-            'body' => $bdreq,
+            'body'    => $bdreq,
+            'timeout' => 30, // 30 second timeout per request
         ));
 
+        // On a transport error, return whatever we have gathered so far
         if (is_wp_error($response)) {
-            return false;
+            break;
         }
-        $data = json_decode(wp_remote_retrieve_body($response), true);
 
-        // Store the data in the cache for 4 hours
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body)) {
+            break;
+        }
+
+        $decoded = json_decode($body, true);
+
+        // Validate the data structure
+        if (!is_array($decoded) || !isset($decoded['value']) || !is_array($decoded['value'])) {
+            break;
+        }
+
+        // Remember the total the API reports (first page is enough)
+        if ($total === null && isset($decoded['metadata']['pagination']['total'])) {
+            $total = (int) $decoded['metadata']['pagination']['total'];
+        }
+
+        $batch = $decoded['value'];
+        $count = count($batch);
+
+        if ($count === 0) {
+            break; // no more records
+        }
+
+        // Merge this page in, skipping records we've already collected
+        $newInBatch = 0;
+        foreach ($batch as $record) {
+            $key = isset($record['id']) ? (string) $record['id'] : md5(json_encode($record));
+            if (!isset($seen[$key])) {
+                $seen[$key]   = true;
+                $allRecords[] = $record;
+                $newInBatch++;
+            }
+        }
+
+        // Nothing new arrived (e.g. pagination not honored) -> stop
+        if ($newInBatch === 0) {
+            break;
+        }
+
+        $offset += $count;
+
+        // Stop once we've reached the reported total...
+        if ($total !== null && $offset >= $total) {
+            break;
+        }
+
+        // ...or when a short page signals the end (if no total was given)
+        if ($total === null && $count < $pageSize) {
+            break;
+        }
+    }
+
+    $data = array('value' => $allRecords);
+
+    // Store valid data in the cache (only if we actually retrieved records)
+    if (!empty($allRecords)) {
         set_transient($transient_key, $data, 4 * HOUR_IN_SECONDS);
     }
 
@@ -184,9 +278,12 @@ function clear_transient_data()
 
 function display_data_table()
 {
+    // Get the data
     $mem = fetch_and_cache_data();
-    if (!$mem) {
-        return 'Failed to fetch data.';
+
+    // Ensure we have valid data
+    if (!is_array($mem) || !isset($mem['value']) || !is_array($mem['value']) || empty($mem['value'])) {
+        return '<div class="notice notice-warning"><p>No data available. Please check your API keys and try again.</p></div>';
     }
     $countryNames = array(
         'AF' => 'Afghanistan',
@@ -446,7 +543,7 @@ function display_data_table()
                 <th>Type</th>
                 <th>Date joined</th>
                 <th class="none">Phone</th>
-                <th>ASATA Region</th>
+                <th>City</th>
                 <th class="none">Address</th>
                 <th class="none">Website</th>
             </tr>
@@ -481,9 +578,18 @@ function display_data_table()
                     } else $ph = ""; ?>
                     <td><?php echo esc_html($ph); ?></td>
                     <!-- column 5 -->
-                    <td> <?php if (isset($item['properties']['asata-region']['title']['en'])) {
+                    <td> <?php
+
+                            /*if (isset($item['properties']['asata-region']['title']['en'])) {
                                 echo esc_html($item['properties']['asata-region']['title']['en']);
-                            } else {
+                            }*/
+
+                            //Change to display city
+
+                            if (isset($item['address']['cityName'])) {
+                                echo esc_html(strtolower($item['address']['cityName']));
+                            }
+                            else {
                                 echo ('');
                             } ?> </td>
                     <!-- column 6 -->
@@ -533,7 +639,7 @@ function display_data_table()
                 <th>Type</th>
                 <th>Date joined</th>
                 <th class="none">Phone</th>
-                <th>ASATA Region</th>
+                <th>City</th>
                 <th class="none">Address</th>
                 <th class="none">Website</th>
             </tr>
